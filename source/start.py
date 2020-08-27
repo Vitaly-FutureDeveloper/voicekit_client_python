@@ -6,11 +6,20 @@ import os.path
 import psycopg2
 
 
+#Parser file keys
 keysObj = configparser.ConfigParser()
 keysObj.read('../keys.ini')
+#Parser file keys
 
 API_KEY = keysObj["keys"]["api-key"]
 SECRET_KEY = keysObj["keys"]["secret-key"]
+
+#DB connect constants
+DB_NAME = "voicelogs"
+USER = "postgres"
+PASSWORD = "123456"
+HOST = "localhost"
+
 
 client = ClientSTT(API_KEY, SECRET_KEY)
 
@@ -26,14 +35,7 @@ mock_arr = {
     "db": 1,
     "stage": 1
 }
-"""
-def db_insert(obj):
-    dbconn = psycopg2.connect( host='localhost', user='postgres', password='123456', dbname='voicelogs' )
-    cursor = dbconn.cursor()
-    cursor.execute("INSERT INTO calls(id, timestamp, date, time, option, tel, audio_duration, audio_result) VALUES ('12', 1598188211, '12.12.2020', '15:00', 'SDSADSA', '4343', 'SDLIAUSDGBUSIADBA BSABD IASB', 'SD')")
-    dbconn.commit()
-    dbconn.close()
-"""
+
 def parse_dict_first(response):
     text = response[0]['alternatives'][0]['transcript']
     array_words = text.split()
@@ -45,7 +47,7 @@ def parse_dict_first(response):
 def parse_dict_second(response):
     text = response[0]['alternatives'][0]['transcript']
     array_words = text.split()
-    print(array_words)
+
     if 'неудобно' in array_words or 'нет' in array_words:
         return 0
     elif 'говорите' in array_words or 'да' in array_words or 'конечно' in array_words:
@@ -107,25 +109,30 @@ def log_writter(response, mock_arr):
     f.write('Результат распознавания: ' + objToFile["audio_result"] + '\n\n')
     f.close()
 
-    dbconn = psycopg2.connect( host='localhost', user='postgres', password='123456', dbname='voicelogs' )
+    dbconn = psycopg2.connect(dbname=DB_NAME, user=USER, password=PASSWORD, host=HOST)
     cursor = dbconn.cursor()
     cursor.execute("INSERT INTO calls(id, date, time, option, tel, audio_duration, audio_result) VALUES (%s,%s,%s,%s,%s,%s,%s)" % (objToFile["id"],"'"+objToFile["date"]+"'","'"+objToFile["time"]+"'","'"+objToFile["option"]+"'",objToFile["tel"],"'"+objToFile["audio_duration"]+"'","'"+objToFile["audio_result"]+"'"))
-    #cursor.execute("INSERT INTO calls(id, date, time, option, tel, audio_duration, audio_result) VALUES ("objToFile['id'], '12.12.2020', '15:00', 'SDSADSA', '4343', 'SDLIAUSDGBUSIADBA BSABD IASB', 'SD')")
     dbconn.commit()
     dbconn.close()
 
 
+
+#UI - User Interfase
+mock_arr["audio"] = input("Пожалуйста, введите путь к аудио файлу: ")
+mock_arr["tel"] = input("Номер телефона: ")
+mock_arr["db"] = input("Нужно ли записывать в базу данных 1 - да, 0 - нет: ")
+mock_arr["stage"] = input("Проход 1 или 2: ")
+#UI - User Interfase
 
 # recognise method call
 response = client.recognize(mock_arr["audio"], audio_config)
 
 print(response[0]['alternatives'][0]['transcript'])
 now = datetime.datetime.now()
-date = now.strftime("%Y-%m-%d")
-print(date)
+
 if mock_arr["stage"] == 1:
     print(parse_dict_first(response))
     log_writter(response, mock_arr)
 else:
-    print(parse_dict_second(response, mock_arr))
-    log_writter(response)
+    print(parse_dict_second(response))
+    log_writter(response, mock_arr)
