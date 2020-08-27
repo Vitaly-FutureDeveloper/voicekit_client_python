@@ -41,6 +41,18 @@ mock_arr = {
     "stage": "1"
 }
 
+def strtofloat(strin):
+    return float(strin[:-1])
+"""
+    arr = list(map(str, strin))
+    result = [0]
+    i = 0
+    for index in arr:
+        if index.isdigit() or ".":
+            result[i] = index
+            i += 1
+    return result.join()
+"""
 def err_logger(error):
     """
     :param: [string] error
@@ -97,15 +109,15 @@ def log_writter(response, mock_arr, parce_result):
     if mock_arr["stage"] == "1":
         count_id = 1
         if parce_result:
-            option = "Человек"
+            option = "человек"
         else:
-            option = "Автоответчик"
+            option = "автоответчик"
     else:
         count_id = 0
         if parce_result:
-            option = "Положительно"
+            option = "положительно"
         else:
-            option = "Отрицательно"
+            option = "отрицательно"
 
     if not os.path.isfile(file_log):
         f = open(file_log, 'w')
@@ -143,10 +155,12 @@ def log_writter(response, mock_arr, parce_result):
     f.write('Результат распознавания: ' + objToFile["audio_result"] + '\n\n')
     f.close()
 
+    float_duration = strtofloat(objToFile["audio_duration"])
+
     if mock_arr["db"] == "1":
         dbconn = psycopg2.connect(dbname=DB_NAME, user=USER, password=PASSWORD, host=HOST)
         cursor = dbconn.cursor()
-        cursor.execute("INSERT INTO call(id, date, time, option, tel, audio_duration, audio_result) VALUES (%s,%s,%s,%s,%s,%s,%s)" % (objToFile["id"],"'"+objToFile["date"]+"'","'"+objToFile["time"]+"'","'"+objToFile["option"]+"'",objToFile["tel"],"'"+objToFile["audio_duration"]+"'","'"+objToFile["audio_result"]+"'"))
+        cursor.execute("INSERT INTO call(id, date, time, option, tel, audio_duration, audio_result) VALUES (%s,%s,%s,%s,%s,%s,%s)" % (objToFile["id"],"'"+objToFile["date"]+"'","'"+objToFile["time"]+"'","'"+objToFile["option"]+"'",objToFile["tel"],float_duration,"'"+objToFile["audio_result"]+"'"))
         dbconn.commit()
         dbconn.close()
 

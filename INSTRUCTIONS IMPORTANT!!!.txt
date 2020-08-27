@@ -1,0 +1,32 @@
+1)Для работы приложения, нужно создать таблицу в БД... По этой команде:
+
+-- Table: public.call
+
+-- DROP TABLE public.call;
+
+CREATE TABLE public.call
+(
+    id integer,
+    date date,
+    "time" time without time zone,
+    option text COLLATE pg_catalog."default",
+    tel text COLLATE pg_catalog."default",
+    audio_duration text COLLATE pg_catalog."default",
+    audio_result text COLLATE pg_catalog."default"
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE public.call
+    OWNER to postgres;
+
+
+
+
+2)Далее! Задаём константы соединения с БД в start.py после #DB connect constants
+
+3)Задаём константы API_KEY и SECRET_KEY, для соединения с tinkoff_voicekit_client. Делать придётся вручную, поскольку файл с ключами не должен быть на гитхаб по ТЗ.
+
+3.1)Парсер файла с ключами #Parser file keys - нужно удалить, программа может не запуститься, потому что файла нет на гитхаб.
+
+4)Если не хотите вводить вручную аудиофайлы, тел и пр. можно закомментировать в коде #UI - User Interfase, тогда программа будет брать информацию из объекта: mock_arr
