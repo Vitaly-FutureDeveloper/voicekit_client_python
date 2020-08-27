@@ -3,6 +3,7 @@ from tinkoff_voicekit_client import ClientSTT
 import configparser
 import datetime
 import os.path
+import psycopg2
 
 
 keysObj = configparser.ConfigParser()
@@ -25,7 +26,14 @@ mock_arr = {
     "db": 1,
     "stage": 1
 }
-
+"""
+def db_insert(obj):
+    dbconn = psycopg2.connect( host='localhost', user='postgres', password='123456', dbname='voicelogs' )
+    cursor = dbconn.cursor()
+    cursor.execute("INSERT INTO calls(id, timestamp, date, time, option, tel, audio_duration, audio_result) VALUES ('12', 1598188211, '12.12.2020', '15:00', 'SDSADSA', '4343', 'SDLIAUSDGBUSIADBA BSABD IASB', 'SD')")
+    dbconn.commit()
+    dbconn.close()
+"""
 def parse_dict_first(response):
     text = response[0]['alternatives'][0]['transcript']
     array_words = text.split()
@@ -43,11 +51,14 @@ def parse_dict_second(response):
     elif 'говорите' in array_words or 'да' in array_words or 'конечно' in array_words:
         return 1
 
-def log_file_writter(response, stage):
+def log_writter(response, mock_arr):
     now = datetime.datetime.now()
+    time = now.strftime("%H:%M")
+    date = now.strftime("%Y-%m-%d")
+
     file_log = "logfiles\callslog.log"
 
-    if stage == 1:
+    if mock_arr["stage"] == 1:
         count_id = 1
         if parse_dict_first(response):
             option = "Человек"
@@ -76,15 +87,14 @@ def log_file_writter(response, stage):
        f.write(index)
     f.close()
 
-
     objToFile = {
-        "date": now.strftime("%Y.%m.%d"),
-        "time": now.strftime("%H:%M"),
+        "date": date,
+        "time": time,
         "id": str(id),
         "option": option,
         "tel": str(mock_arr["tel"]),
         "audio_duration": response[0]['end_time'],
-        "audio_result": response[0]['alternatives'][0]['transcript']
+        "audio_result": str(response[0]['alternatives'][0]['transcript'])
     }
 
     f = open(file_log, 'a')
@@ -97,6 +107,13 @@ def log_file_writter(response, stage):
     f.write('Результат распознавания: ' + objToFile["audio_result"] + '\n\n')
     f.close()
 
+    dbconn = psycopg2.connect( host='localhost', user='postgres', password='123456', dbname='voicelogs' )
+    cursor = dbconn.cursor()
+    cursor.execute("INSERT INTO calls(id, date, time, option, tel, audio_duration, audio_result) VALUES (%s,%s,%s,%s,%s,%s,%s)" % (objToFile["id"],"'"+objToFile["date"]+"'","'"+objToFile["time"]+"'","'"+objToFile["option"]+"'",objToFile["tel"],"'"+objToFile["audio_duration"]+"'","'"+objToFile["audio_result"]+"'"))
+    #cursor.execute("INSERT INTO calls(id, date, time, option, tel, audio_duration, audio_result) VALUES ("objToFile['id'], '12.12.2020', '15:00', 'SDSADSA', '4343', 'SDLIAUSDGBUSIADBA BSABD IASB', 'SD')")
+    dbconn.commit()
+    dbconn.close()
+
 
 
 # recognise method call
@@ -104,11 +121,11 @@ response = client.recognize(mock_arr["audio"], audio_config)
 
 print(response[0]['alternatives'][0]['transcript'])
 now = datetime.datetime.now()
-print(now.strftime("%Y.%m.%d %H:%M"))
-
+date = now.strftime("%Y-%m-%d")
+print(date)
 if mock_arr["stage"] == 1:
     print(parse_dict_first(response))
-    log_file_writter(response, mock_arr["stage"])
+    log_writter(response, mock_arr)
 else:
-    print(parse_dict_second(response, mock_arr["stage"]))
-    log_file_writter(response)
+    print(parse_dict_second(response, mock_arr))
+    log_writter(response)
