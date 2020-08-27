@@ -1,3 +1,11 @@
+#coding: utf-8
+"""
+Created on 28.08.2020
+
+:author: Vitali
+Тестовое задание для CIO | X-lab |
+"""
+
 from tinkoff_voicekit_client import ClientSTT
 
 import configparser
@@ -20,9 +28,6 @@ USER = "postgres"
 PASSWORD = "123456"
 HOST = "localhost"
 
-
-client = ClientSTT(API_KEY, SECRET_KEY)
-
 audio_config = {
     "encoding": "LINEAR16",
     "sample_rate_hertz": 8000,
@@ -36,7 +41,26 @@ mock_arr = {
     "stage": "1"
 }
 
+def err_logger(error):
+    """
+    :param: [string] error
+    :return: void
+    """
+    file_log = "logfiles\errorslog.log"
+
+    if not os.path.isfile(file_log):
+        f = open(file_log, 'w')
+        f.close()
+
+    f = open(file_log, 'a')
+    f.write(error + '\n\n')
+    f.close()
+
 def parse_dict_first(response):
+    """
+    :param[Object] response:
+    :return: boolean
+    """
     text = response[0]['alternatives'][0]['transcript']
     array_words = text.split()
     if 'автоответчик' in array_words:
@@ -45,6 +69,10 @@ def parse_dict_first(response):
         return 1
 
 def parse_dict_second(response):
+    """
+    :param[Object] response:
+    :return: boolean
+    """
     text = response[0]['alternatives'][0]['transcript']
     array_words = text.split()
 
@@ -54,6 +82,12 @@ def parse_dict_second(response):
         return 1
 
 def log_writter(response, mock_arr, parce_result):
+    """
+    :param[Object] response:
+    :param[Object] mock_arr:
+    :param[Object] boolean:
+    :return: void
+    """
     now = datetime.datetime.now()
     time = now.strftime("%H:%M")
     date = now.strftime("%Y-%m-%d")
@@ -125,10 +159,11 @@ mock_arr["db"] = input("Нужно ли записывать в базу дан�
 mock_arr["stage"] = input("Проход 1 или 2: ")
 #UI - User Interfase
 
+#Connect tinkoff_voicekit_client
+client = ClientSTT(API_KEY, SECRET_KEY)
+
 # recognise method call
 response = client.recognize(mock_arr["audio"], audio_config)
-
-print(response[0]['alternatives'][0]['transcript'])
 
 if mock_arr["stage"] == "1":
     parse_first = parse_dict_first(response)
@@ -138,3 +173,8 @@ else:
     parse_second = parse_dict_second(response)
     print(parse_second)
     log_writter(response, mock_arr, parse_second)
+    #delete audio file after 2 stage
+    try:
+        os.remove(mock_arr["audio"])
+    except OSError as e:
+        err_logger("Ошибка удаления файла: %s : %s" % (file_path, e.strerror))
