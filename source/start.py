@@ -31,9 +31,9 @@ audio_config = {
 
 mock_arr = {
     "audio": "../audio/4.wav",
-    "tel": 84654522,
-    "db": 1,
-    "stage": 1
+    "tel": "84654522",
+    "db": "1",
+    "stage": "1"
 }
 
 def parse_dict_first(response):
@@ -53,22 +53,22 @@ def parse_dict_second(response):
     elif 'говорите' in array_words or 'да' in array_words or 'конечно' in array_words:
         return 1
 
-def log_writter(response, mock_arr):
+def log_writter(response, mock_arr, parce_result):
     now = datetime.datetime.now()
     time = now.strftime("%H:%M")
     date = now.strftime("%Y-%m-%d")
 
     file_log = "logfiles\callslog.log"
 
-    if mock_arr["stage"] == 1:
+    if mock_arr["stage"] == "1":
         count_id = 1
-        if parse_dict_first(response):
+        if parce_result:
             option = "Человек"
         else:
             option = "Автоответчик"
     else:
         count_id = 0
-        if parse_dict_second(response):
+        if parce_result:
             option = "Положительно"
         else:
             option = "Отрицательно"
@@ -109,11 +109,12 @@ def log_writter(response, mock_arr):
     f.write('Результат распознавания: ' + objToFile["audio_result"] + '\n\n')
     f.close()
 
-    dbconn = psycopg2.connect(dbname=DB_NAME, user=USER, password=PASSWORD, host=HOST)
-    cursor = dbconn.cursor()
-    cursor.execute("INSERT INTO calls(id, date, time, option, tel, audio_duration, audio_result) VALUES (%s,%s,%s,%s,%s,%s,%s)" % (objToFile["id"],"'"+objToFile["date"]+"'","'"+objToFile["time"]+"'","'"+objToFile["option"]+"'",objToFile["tel"],"'"+objToFile["audio_duration"]+"'","'"+objToFile["audio_result"]+"'"))
-    dbconn.commit()
-    dbconn.close()
+    if mock_arr["db"] == "1":
+        dbconn = psycopg2.connect(dbname=DB_NAME, user=USER, password=PASSWORD, host=HOST)
+        cursor = dbconn.cursor()
+        cursor.execute("INSERT INTO call(id, date, time, option, tel, audio_duration, audio_result) VALUES (%s,%s,%s,%s,%s,%s,%s)" % (objToFile["id"],"'"+objToFile["date"]+"'","'"+objToFile["time"]+"'","'"+objToFile["option"]+"'",objToFile["tel"],"'"+objToFile["audio_duration"]+"'","'"+objToFile["audio_result"]+"'"))
+        dbconn.commit()
+        dbconn.close()
 
 
 
@@ -128,11 +129,12 @@ mock_arr["stage"] = input("Проход 1 или 2: ")
 response = client.recognize(mock_arr["audio"], audio_config)
 
 print(response[0]['alternatives'][0]['transcript'])
-now = datetime.datetime.now()
 
-if mock_arr["stage"] == 1:
-    print(parse_dict_first(response))
-    log_writter(response, mock_arr)
+if mock_arr["stage"] == "1":
+    parse_first = parse_dict_first(response)
+    print(parse_first)
+    log_writter(response, mock_arr, parse_first)
 else:
-    print(parse_dict_second(response))
-    log_writter(response, mock_arr)
+    parse_second = parse_dict_second(response)
+    print(parse_second)
+    log_writter(response, mock_arr, parse_second)
