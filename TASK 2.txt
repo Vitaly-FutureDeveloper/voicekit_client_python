@@ -10,3 +10,5 @@ SELECT * FROM call WHERE option='отрицательно'
 SELECT COUNT(*) FROM call WHERE date BETWEEN '2020-08-28' AND '2020-08-30'
 
 SELECT SUM(audio_duration) FROM call
+
+SELECT * FROM call JOIN Project ON id = id JOIN Server ON id = id
